@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 
 @app.route('/')
 def main():
@@ -11,22 +11,31 @@ def main():
 
 @app.route('/message/<username>', methods=['GET', 'POST'])
 @app.route('/message/', methods=['GET', 'POST'])
-def contact(username = None):
+def contact(username=None):
     if request.method == 'POST':
         data_dict = {}
-
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        data_dict['timestamp'] = timestamp
 
         username = request.form['username']
         message = request.form['message']
 
-        data_dict['name'] = username
+        data_dict['username'] = username
         data_dict['message'] = message
 
+        with open('storage/data.json', 'r') as f:
+            try:
+                existing_data = json.load(f)
+            except json.JSONDecodeError:
+                existing_data = {}
+
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        
+        existing_data[current_time] = {
+            "username": username,
+            "message": message
+        }
+
         with open('storage/data.json', 'w') as f:
-            json.dump(data_dict, f)
-            f.write('\n')
+            json.dump(existing_data, f, indent=2)
     return render_template('message.html')
 
 @app.errorhandler(404)
